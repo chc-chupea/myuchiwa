@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Myうちわ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 10px;
+    }
+    #videoWrapper {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      aspect-ratio: 4 / 3;
+      margin: 0 auto;
+      background-color: black;
+      overflow: hidden;
+    }
+    video, img.overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas {
+      display: none;
+    }
+    #captureBtn {
+      margin-top: 15px;
+      background: none;
+      border: none;
+    }
+    #captureBtn img {
+      width: 120px;
+      height: auto;
+    }
+    #notice {
+      margin-top: 15px;
+      color: green;
+      font-weight: bold;
+    }
+    #notice a {
+      color: #0077cc;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>作っちゃおう！Myうちわ</h1>
+
+  <div id="videoWrapper">
+    <video id="video" autoplay playsinline></video>
+    <img id="overlay" src="fan.png" class="overlay" alt="うちわテンプレ画像">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <button id="captureBtn">
+    <img src="shutterbotann.png" alt="シャッターボタン">
+  </button>
+
+  <p id="notice" style="display:none;">
+    📸 画像が保存されました！<br>
+    自動でGoogleフォームが開かない場合は
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header" target="_blank">こちらをクリック</a>してください。
+  </p>
+
+  <audio id="shutterSound" src="camera-shutter.mp3" preload="auto"></audio>
+
+  <script>
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const canvas = document.getElementById('canvas');
+    const shutterSound = document.getElementById('shutterSound');
+    const captureBtn = document.getElementById('captureBtn');
+    const notice = document.getElementById('notice');
+    const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header";
+
+    // カメラ起動
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert('カメラにアクセスできませんでした');
+        console.error(err);
+      });
+
+    captureBtn.addEventListener('click', () => {
+      // シャッター音
+      shutterSound.currentTime = 0;
+      shutterSound.play().catch(e => console.warn("音が再生できません:", e));
+
+      const w = 3508; // A4横サイズ
+      const h = 2480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // 元の映像サイズ（iOS Safari対策）
+      const vw = video.videoWidth || video.getBoundingClientRect().width;
+      const vh = video.videoHeight || video.getBoundingClientRect().height;
+      const aspectVideo = vw / vh;
+      const aspectCanvas = w / h;
+
+      let sx = 0, sy = 0, sw = vw, sh = vh;
+
+      if (aspectVideo > aspectCanvas) {
+        // 横長 → 左右をカット
+        sw = vh * aspectCanvas;
+        sx = (vw - sw) / 2;
+      } else {
+        // 縦長 → 上下をカット
+        sh = vw / aspectCanvas;
+        sy = (vh - sh) / 2;
+      }
+
+      // 描画：カメラ映像
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
+
+      // 合成＆保存
+      function mergeOverlayAndSave() {
+        ctx.drawImage(overlay, 0, 0, w, h);
+        try {
+          const dataURL = canvas.toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = dataURL;
+          a.download = `Myうちわ画像_${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          // 表示切り替え
+          notice.style.display = 'block';
+
+          // ★ ポップアップブロック回避のため少し遅らせて遷移（例：1秒後）
+          setTimeout(() => {
+            window.open(formURL, "_blank");
+          }, 1000);
+        } catch (err) {
+          alert('画像の保存に失敗しました。手動で保存してください。');
+          console.error(err);
+        }
+      }
+
+      if (overlay.complete) {
+        mergeOverlayAndSave();
+      } else {
+        overlay.onload = mergeOverlayAndSave;
+      }
+    });
+  </script>
+</body>
+</html>
