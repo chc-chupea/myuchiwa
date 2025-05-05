@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Myうちわ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 10px;
+    }
+    #videoWrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    video, canvas, img.overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #videoWrapperInner {
+      position: relative;
+      width: 100%;
+      padding-top: 141%; /* 横長っぽく */
+    }
+    canvas {
+      display: none;
+    }
+    #captureBtn {
+      background: none;
+      border: none;
+      margin-top: 10px;
+    }
+    #captureBtn img {
+      width: 120px;
+      height: auto;
+    }
+    #notice {
+      margin-top: 10px;
+      color: green;
+      font-weight: bold;
+    }
+    #notice a {
+      color: #0077cc;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>作っちゃおう！"Myうちわ"</h1>
+
+  <div id="videoWrapper">
+    <div id="videoWrapperInner">
+      <video id="video" autoplay playsinline></video>
+      <img src="fan.png" class="overlay" id="overlay" alt="Myうちわ画像">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <button id="captureBtn">
+    <img src="shutterbotann.png" alt="シャッターボタン">
+  </button>
+
+  <p id="notice" style="display:none;">
+    📷 写真が保存されました！<br>
+    自動でGoogleフォームが開かない場合は
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header" target="_blank">
+      こちらをクリック
+    </a>してください。
+  </p>
+
+  <audio id="shutterSound" src="camera-shutter.mp3" preload="auto"></audio>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const overlay = document.getElementById('overlay');
+    const captureBtn = document.getElementById('captureBtn');
+    const shutterSound = document.getElementById('shutterSound');
+    const notice = document.getElementById('notice');
+
+    // カメラ起動（インカメ優先）
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      .then(stream => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
+      })
+      .catch(err => {
+        alert("カメラにアクセスできません。ブラウザの設定をご確認ください。");
+        console.error(err);
+      });
+
+    captureBtn.addEventListener('click', () => {
+      const w = 3508;
+      const h = 2480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // シャッター音
+      shutterSound.currentTime = 0;
+      shutterSound.play().catch(e => {
+        console.warn("シャッター音が再生できません:", e);
+      });
+
+      // 映像を横向き（90度回転）で描画
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      ctx.rotate(-90 * Math.PI / 180);
+      ctx.drawImage(video, -h / 2, -w / 2, h, w);
+      ctx.restore();
+
+      // オーバーレイ画像が読み込み済みなら合成
+      if (overlay.complete) {
+        ctx.drawImage(overlay, 0, 0, w, h);
+        saveAndRedirect();
+      } else {
+        overlay.onload = () => {
+          ctx.drawImage(overlay, 0, 0, w, h);
+          saveAndRedirect();
+        };
+      }
+    });
+
+    function saveAndRedirect() {
+      canvas.toBlob(function(blob) {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Myうちわ画像_${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          notice.style.display = 'block';
+
+          // フォームを自動で開く
+          setTimeout(() => {
+            window.open("https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header", "_blank");
+          }, 1500);
+        } else {
+          alert("画像の保存ができませんでした。お使いの端末でサポートされていない可能性があります。");
+        }
+      }, 'image/png');
+    }
+  </script>
+</body>
+</html>
