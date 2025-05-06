@@ -142,7 +142,7 @@
           // ★ ポップアップブロック回避のため少し遅らせて遷移（例：1秒後）
           setTimeout(() => {
             window.open(formURL, "_blank");
-          }, 500);
+          }, 1000);
         } catch (err) {
           alert('画像の保存に失敗しました。手動で保存してください。');
           console.error(err);
