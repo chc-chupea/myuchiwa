@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -50,10 +50,34 @@
       color: #0077cc;
       text-decoration: underline;
     }
+    #langButtons {
+      margin-top: 10px;
+    }
+    #langButtons button {
+      margin: 0 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h1>作っちゃおう！Myうちわ</h1>
+  <div id="langButtons">
+    <button onclick="setLanguage('ja')">日本語</button>
+    <button onclick="setLanguage('en')">English</button>
+    <button onclick="setLanguage('zh')">中文</button>
+    <button onclick="setLanguage('ko')">한국어</button>
+    <button onclick="setLanguage('vi')">Tiếng Việt</button>
+  </div>
+
+  <h1 id="title"
+      data-ja="作っちゃおう！Myうちわ"
+      data-en="Let's Make Our Own Fan!"
+      data-zh="一起来制作我们的团扇！"
+      data-ko="우리만의 부채를 만들어보자!"
+      data-vi="Hãy cùng làm quạt giấy của riêng mình!">
+    作っちゃおう！Myうちわ
+  </h1>
 
   <div id="videoWrapper">
     <video id="video" autoplay playsinline></video>
@@ -65,7 +89,12 @@
     <img src="shutterbotann.png" alt="シャッターボタン">
   </button>
 
-  <p id="notice" style="display:none;">
+  <p id="notice" style="display:none;"
+     data-ja="📸 画像が保存されました！<br>自動でGoogleフォームが開かない場合は <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>こちらをクリック</a>してください。"
+     data-en="📸 Your image has been saved!<br>If the Google Form doesn't open automatically, <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>click here</a>."
+     data-zh="📸 图片已保存！<br>如果Google表单未自动打开，<a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>请点击这里</a>。"
+     data-ko="📸 이미지가 저장되었습니다!<br>Google 폼이 자동으로 열리지 않으면 <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>여기를 클릭하세요</a>."
+     data-vi="📸 Hình ảnh của bạn đã được lưu!<br>Nếu Google Form không tự động mở, <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>hãy nhấn vào đây</a>.">
     📸 画像が保存されました！<br>
     自動でGoogleフォームが開かない場合は
     <a href="https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header" target="_blank">こちらをクリック</a>してください。
@@ -82,7 +111,14 @@
   const notice = document.getElementById('notice');
   const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header";
 
-  // カメラ起動
+  function setLanguage(lang) {
+    document.querySelectorAll('[data-ja]').forEach(el => {
+      if (el.dataset[lang]) {
+        el.innerHTML = el.dataset[lang];
+      }
+    });
+  }
+
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
     .then(stream => {
       video.srcObject = stream;
@@ -93,11 +129,10 @@
     });
 
   captureBtn.addEventListener('click', () => {
-    // シャッター音
     shutterSound.currentTime = 0;
     shutterSound.play().catch(e => console.warn("音が再生できません:", e));
 
-    const w = 3508; // A4横サイズ
+    const w = 3508;
     const h = 2480;
     canvas.width = w;
     canvas.height = h;
@@ -109,7 +144,6 @@
     const aspectCanvas = w / h;
 
     let sx = 0, sy = 0, sw = vw, sh = vh;
-
     if (aspectVideo > aspectCanvas) {
       sw = vh * aspectCanvas;
       sx = (vw - sw) / 2;
@@ -118,10 +152,8 @@
       sy = (vh - sh) / 2;
     }
 
-    // 描画：カメラ映像
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
 
-    // 合成＆保存
     function mergeOverlayAndSave() {
       ctx.drawImage(overlay, 0, 0, w, h);
       canvas.toBlob(blob => {
@@ -132,11 +164,7 @@
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-
-          // 表示切り替え
           notice.style.display = 'block';
-
-          // Googleフォームを開く
           setTimeout(() => {
             window.open(formURL, "_blank");
           }, 1000);
@@ -152,6 +180,13 @@
       overlay.onload = mergeOverlayAndSave;
     }
   });
+
+  const browserLang = navigator.language;
+  if (browserLang.startsWith('en')) setLanguage('en');
+  else if (browserLang.startsWith('zh')) setLanguage('zh');
+  else if (browserLang.startsWith('ko')) setLanguage('ko');
+  else if (browserLang.startsWith('vi')) setLanguage('vi');
+  else setLanguage('ja');
 </script>
 </body>
 </html>
