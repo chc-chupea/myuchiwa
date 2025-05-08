@@ -73,64 +73,61 @@
 
   <audio id="shutterSound" src="camera-shutter.mp3" preload="auto"></audio>
 
-  <script>
-    const video = document.getElementById('video');
-    const overlay = document.getElementById('overlay');
-    const canvas = document.getElementById('canvas');
-    const shutterSound = document.getElementById('shutterSound');
-    const captureBtn = document.getElementById('captureBtn');
-    const notice = document.getElementById('notice');
-    const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header";
+<script>
+  const video = document.getElementById('video');
+  const overlay = document.getElementById('overlay');
+  const canvas = document.getElementById('canvas');
+  const shutterSound = document.getElementById('shutterSound');
+  const captureBtn = document.getElementById('captureBtn');
+  const notice = document.getElementById('notice');
+  const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header";
 
-    // カメラ起動
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-      .then(stream => {
-        video.srcObject = stream;
-      })
-      .catch(err => {
-        alert('カメラにアクセスできませんでした');
-        console.error(err);
-      });
+  // カメラ起動
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      alert('カメラにアクセスできませんでした');
+      console.error(err);
+    });
 
-    captureBtn.addEventListener('click', () => {
-      // シャッター音
-      shutterSound.currentTime = 0;
-      shutterSound.play().catch(e => console.warn("音が再生できません:", e));
+  captureBtn.addEventListener('click', () => {
+    // シャッター音
+    shutterSound.currentTime = 0;
+    shutterSound.play().catch(e => console.warn("音が再生できません:", e));
 
-      const w = 3508; // A4横サイズ
-      const h = 2480;
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
+    const w = 3508; // A4横サイズ
+    const h = 2480;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
 
-      // 元の映像サイズ（iOS Safari対策）
-      const vw = video.videoWidth || video.getBoundingClientRect().width;
-      const vh = video.videoHeight || video.getBoundingClientRect().height;
-      const aspectVideo = vw / vh;
-      const aspectCanvas = w / h;
+    const vw = video.videoWidth || video.getBoundingClientRect().width;
+    const vh = video.videoHeight || video.getBoundingClientRect().height;
+    const aspectVideo = vw / vh;
+    const aspectCanvas = w / h;
 
-      let sx = 0, sy = 0, sw = vw, sh = vh;
+    let sx = 0, sy = 0, sw = vw, sh = vh;
 
-      if (aspectVideo > aspectCanvas) {
-        // 横長 → 左右をカット
-        sw = vh * aspectCanvas;
-        sx = (vw - sw) / 2;
-      } else {
-        // 縦長 → 上下をカット
-        sh = vw / aspectCanvas;
-        sy = (vh - sh) / 2;
-      }
+    if (aspectVideo > aspectCanvas) {
+      sw = vh * aspectCanvas;
+      sx = (vw - sw) / 2;
+    } else {
+      sh = vw / aspectCanvas;
+      sy = (vh - sh) / 2;
+    }
 
-      // 描画：カメラ映像
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
+    // 描画：カメラ映像
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
 
-      // 合成＆保存
-      function mergeOverlayAndSave() {
-        ctx.drawImage(overlay, 0, 0, w, h);
-        try {
-          const dataURL = canvas.toDataURL('image/png');
+    // 合成＆保存
+    function mergeOverlayAndSave() {
+      ctx.drawImage(overlay, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        if (blob) {
           const a = document.createElement('a');
-          a.href = dataURL;
+          a.href = URL.createObjectURL(blob);
           a.download = `Myうちわ画像_${Date.now()}.png`;
           document.body.appendChild(a);
           a.click();
@@ -139,22 +136,22 @@
           // 表示切り替え
           notice.style.display = 'block';
 
-          // ★ ポップアップブロック回避のため少し遅らせて遷移（例：1秒後）
+          // Googleフォームを開く
           setTimeout(() => {
             window.open(formURL, "_blank");
           }, 1000);
-        } catch (err) {
+        } else {
           alert('画像の保存に失敗しました。手動で保存してください。');
-          console.error(err);
         }
-      }
+      }, 'image/png');
+    }
 
-      if (overlay.complete) {
-        mergeOverlayAndSave();
-      } else {
-        overlay.onload = mergeOverlayAndSave;
-      }
-    });
-  </script>
+    if (overlay.complete) {
+      mergeOverlayAndSave();
+    } else {
+      overlay.onload = mergeOverlayAndSave;
+    }
+  });
+</script>
 </body>
 </html>
