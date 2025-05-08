@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Myうちわ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 10px;
+    }
+    #videoWrapper {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      aspect-ratio: 4 / 3;
+      margin: 0 auto;
+      background-color: black;
+      overflow: hidden;
+    }
+    video, img.overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas {
+      display: none;
+    }
+    #captureBtn {
+      margin-top: 15px;
+      background: none;
+      border: none;
+    }
+    #captureBtn img {
+      width: 120px;
+      height: auto;
+    }
+    #notice {
+      margin-top: 15px;
+      color: green;
+      font-weight: bold;
+    }
+    #notice a {
+      color: #0077cc;
+      text-decoration: underline;
+    }
+    #langButtons {
+      margin-top: 10px;
+    }
+    #langButtons button {
+      margin: 0 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #overlay {
+      position: absolute;
+      cursor: grab;
+    }
+
+    /* プレビュー＆印刷用スタイル追加 */
+    .fan-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+    .fan-wrapper {
+      width: 300px;
+      position: relative;
+    }
+    .fan {
+      width: 100%;
+      height: auto;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    }
+    .fan-print {
+      display: none;
+    }
+    @media print {
+      .fan-screen {
+        display: none !important;
+      }
+      .fan-print {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="langButtons">
+    <button onclick="setLanguage('ja')">日本語</button>
+    <button onclick="setLanguage('en')">English</button>
+    <button onclick="setLanguage('zh')">中文</button>
+    <button onclick="setLanguage('ko')">한국어</button>
+    <button onclick="setLanguage('vi')">Tiếng Việt</button>
+  </div>
+
+  <h1 id="title"
+      data-ja="作っちゃおう！Myうちわ"
+      data-en="Let's Make Our Own Fan!"
+      data-zh="一起来制作我们的团扇！"
+      data-ko="우리만의 부채를 만들어보자!"
+      data-vi="Hãy cùng làm quạt giấy của riêng mình!">
+    作っちゃおう！Myうちわ
+  </h1>
+
+  <select id="templateSelector">
+    <option value="fan1-lowres.png">基本テンプレート 1</option>
+    <option value="fan2-lowres.png">母の日テンプレート</option>
+    <option value="fan3-lowres.png">父の日テンプレート 3</option>
+  </select>
+
+  <div id="videoWrapper">
+    <video id="video" autoplay playsinline></video>
+    <img id="overlay" class="overlay" alt="うちわテンプレ画像">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <button id="captureBtn">
+    <img src="shutterbotann.png" alt="シャッターボタン">
+  </button>
+
+  <p id="notice" style="display:none;"
+     data-ja="📸 画像が保存されました！<br>自動でGoogleフォームが開かない場合は <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>こちらをクリック</a>してください。"
+     data-en="📸 Your image has been saved!<br>If the Google Form doesn't open automatically, <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>click here</a>."
+     data-zh="📸 图片已保存！<br>如果Google表单未自动打开，<a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>请点击这里</a>。"
+     data-ko="📸 이미지가 저장되었습니다!<br>Google 폼이 자동으로 열리지 않으면 <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>여기를 클릭하세요</a>."
+     data-vi="📸 Hình ảnh của bạn đã được lưu!<br>Nếu Google Form không tự động mở, <a href='https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header' target='_blank'>hãy nhấn vào đây</a>.">
+    📸 画像が保存されました！<br>
+    自動でGoogleフォームが開かない場合は
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdx48RlIZFaUYIydXqXBUGQQXxOglvkMz-JQ2c9DXzbdzDyhA/viewform?usp=header" target="_blank">こちらをクリック</a>してください。
+  </p>
+
+  <audio id="shutterSound" src="camera-shutter.mp3" preload="auto"></audio>
+
+  <!-- 団扇印刷セクション -->
+  <h1>団扇プレビュー & 印刷</h1>
+  <p>画面では軽量画像、印刷時には高解像度画像が使用されます。</p>
+
+  <div class="fan-container">
+    <div class="fan-wrapper">
+      <img src="fan1-lowres.png" class="fan fan-screen" alt="団扇1画面用">
+      <img src="fan1-highres.png" class="fan fan-print" alt="団扇1印刷用">
+    </div>
+    <div class="fan-wrapper">
+      <img src="fan2-lowres.png" class="fan fan-screen" alt="団扇2画面用">
+      <img src="fan2-highres.png" class="fan fan-print" alt="団扇2印刷用">
+    </div>
+    <div class="fan-wrapper">
+      <img src="fan3-lowres.png" class="fan fan-screen" alt="団扇3画面用">
+      <img src="fan3-highres.png" class="fan fan-print" alt="団扇3印刷用">
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const canvas = document.getElementById('canvas');
+    const shutterSound = document.getElementById('shutterSound');
+    const captureBtn = document.getElementById('captureBtn');
+    const notice = document.getElementById('notice');
+
+    function setLanguage(lang) {
+      document.querySelectorAll('[data-ja]').forEach(el => {
+        if (el.dataset[lang]) {
+          el.innerHTML = el.dataset[lang];
+        }
+      });
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert('カメラにアクセスできませんでした');
+        console.error(err);
+      });
+
+    const templateSelector = document.getElementById('templateSelector');
+    templateSelector.addEventListener('change', (event) => {
+      const selectedTemplate = event.target.value;
+      overlay.style.display = 'none';
+      overlay.onload = () => {
+        overlay.style.display = 'block';
+      };
+      overlay.src = selectedTemplate;
+    });
+
+    captureBtn.addEventListener('click', () => {
+      shutterSound.currentTime = 0;
+      shutterSound.play().catch(e => console.warn("音が再生できません:", e));
+
+      const w = 3508;
+      const h = 2480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      const vw = video.videoWidth || video.getBoundingClientRect().width;
+      const vh = video.videoHeight || video.getBoundingClientRect().height;
+      const aspectVideo = vw / vh;
+      const aspectCanvas = w / h;
+
+      let sx = 0, sy = 0, sw = vw, sh = vh;
+      if (aspectVideo > aspectCanvas) {
+        sw = vh * aspectCanvas;
+        sx = (vw - sw) / 2;
+      } else {
+        sh = vw / aspectCanvas;
+        sy = (vh - sh) / 2;
+      }
+
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
+
+      function mergeOverlayAndSave() {
+        ctx.drawImage(overlay, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          if (blob) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Myうちわ画像_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            notice.style.display = 'block';
+          }
+        });
+      }
+
+      if (overlay.complete) {
+        mergeOverlayAndSave();
+      } else {
+        overlay.onload = mergeOverlayAndSave;
+      }
+    });
+  </script>
+</body>
+</html>
