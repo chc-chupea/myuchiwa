@@ -251,6 +251,73 @@
     });
 
     startCamera(); // 初期起動時にカメラON
+
+
+// ★ MediaPipe描画キャンバスの作成とガイド表示処理
+  const faceCanvas = document.createElement('canvas');
+  faceCanvas.style.position = 'absolute';
+  faceCanvas.style.top = '0';
+  faceCanvas.style.left = '0';
+  faceCanvas.style.width = '100%';
+  faceCanvas.style.height = '100%';
+  faceCanvas.style.pointerEvents = 'none';
+  document.getElementById('videoWrapper').appendChild(faceCanvas);
+
+  const faceCtx = faceCanvas.getContext('2d');
+  let faceDetector;
+
+  function drawFaceGuide(box) {
+    const { xCenter, yCenter, width, height } = box;
+    faceCtx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+    faceCtx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+    faceCtx.lineWidth = 4;
+    faceCtx.strokeRect(
+      (xCenter - width / 2) * faceCanvas.width,
+      (yCenter - height / 2) * faceCanvas.height,
+      width * faceCanvas.width,
+      height * faceCanvas.height
+    );
+  }
+
+  async function initFaceDetection() {
+    faceDetector = new FaceDetection.FaceDetection({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+    });
+    faceDetector.setOptions({ model: 'short', minDetectionConfidence: 0.6 });
+    faceDetector.onResults(results => {
+      faceCtx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+      if (results.detections.length > 0) {
+        drawFaceGuide(results.detections[0].locationData.relativeBoundingBox);
+      }
+    });
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await faceDetector.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  }
+
+  video.addEventListener('loadedmetadata', () => {
+    faceCanvas.width = video.videoWidth;
+    faceCanvas.height = video.videoHeight;
+  });
+
+  captureBtn.addEventListener('click', () => {
+    faceCanvas.style.display = 'none';
+    setTimeout(() => {
+      faceCanvas.style.display = 'block';
+    }, 1000);
+  });
+
+  initFaceDetection();
   </script>
+
+<!-- 🔻 最後にこれだけ追加（外部ライブラリ） -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </body>
 </html>
